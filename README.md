@@ -1,4 +1,4 @@
-## Deployer
+## repo-deploy
 
 Polls a central application configuration repository for application
 configuration and code updates.
@@ -10,6 +10,12 @@ expected to monitor for updates.
 The directory to monitor is located at `${deployDir}/current`. By
 default, this resolves to `/var/deploy/current`. Alternate
 locations can be specified in `/etc/repo-deploy/repo-deploy.cfg`.
+
+You can install repo-deploy from PyPI:
+
+```
+pip install repo-deploy
+```
 
 ### Command line parameters
 
