@@ -1,0 +1,5 @@
+All executable scripts in the directory will be run after an update is downloaded, but
+before it is linked as the current version.
+
+Typically this is used to ensure the application is in an updatable state or acquire
+any cluster update synchronization locks (i.e. ZooKeeper).

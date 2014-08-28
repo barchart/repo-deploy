@@ -1,0 +1,6 @@
+All executable scripts in the directory will be run after an update is downloaded
+and linked as the current version.
+
+Typically this is used to move files to the correct locations, reload/restart
+applications, or verify service health before releasing any update synchronization
+locks (i.e. ZooKeeper).
