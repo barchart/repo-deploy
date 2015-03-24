@@ -166,6 +166,9 @@ class GitRepository(Repository):
         # Should use symlinks instead of moving since directory location isn't change
         self.link = True
 
+        if url.startswith('git+'):
+            url = url[4:]
+
         self.remote = url
         self.prefix = ''
         self.branch = 'master'
