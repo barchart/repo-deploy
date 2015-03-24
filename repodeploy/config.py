@@ -1,55 +1,30 @@
 import requests
 import socket
 import logging
+import os
 
 
 def parse(filename):
 
-	config = {}
+    config = {}
 
-	with open(filename, 'r') as f:
+    if os.path.exists(filename):
 
-		for line in f:
-			if line[:1] == '#':
-				continue
-			(key, value) = line.split('=')
-			config[key.strip()] = value.strip()
+        with open(filename, 'r') as f:
 
-	return config
+            for line in f:
+                if line[:1] == '#':
+                    continue
+                (key, value) = line.split('=')
+                config[key.strip()] = value.strip()
 
-def instance_config(config):
+    return config
 
-	# Update with local instance data
-	for update in (ec2_config, host_config):
-		config = update(config)
-
-	return config
-
-def ec2_config(config):
-	try:
-		# Raises exception if non-existent, means we're not in EC2
-		socket.gethostbyname('instance-data.ec2.internal')
-		resp = requests.get('http://instance-data.ec2.internal/latest/user-data')
-		try:
-			json = resp.json()
-			# Always override if user-data exists
-			if u'identity' in json:
-				config['identity'] = json[u'identity']
-			if u'repository' in json:
-				config['repository'] = json[u'repository']
-		except Exception as e:
-			logging.getLogger(__name__).error('Could not parse user-data: %s' % e)
-	except Exception as e:
-		pass
-	return config
-
-def host_config(config):
-	# Fallback, only set if no ID is defined yet
-	if 'identity' not in config:
-		try:
-			host = socket.getfqdn().split('.')
-			host.reverse()
-			config['identity'] = '.'.join(host)
-		except:
-			pass
-	return config
+def value(cfg, name, envvar=None, arg=None, default=None):
+    if arg:
+        return arg
+    if name in cfg and cfg[name]:
+        return cfg[name]
+    if envvar in os.environ and os.environ[envvar]:
+        return os.environ[envvar]
+    return default
