@@ -149,7 +149,7 @@ class Deployer:
                 return False
             else:
                 if save is not None and os.path.exists(save):
-                    log.debug('removing rollback version')
+                    self.log.debug('removing rollback version')
                     shutil.rmtree(save)
                 self.version = version
                 with open(self.versionfile, 'w') as f:
