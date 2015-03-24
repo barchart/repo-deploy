@@ -211,6 +211,12 @@ class GitRepository(Repository):
             out = sh.git('pull', _cwd=directory)
             if out.exit_code != 0:
                 raise Exception(str(out))
+
+        # Update any submodules
+        out = sh.git('submodule', 'update', '--init', '--recursive', _cwd=directory)
+        if out.exit_code != 0:
+            raise Exception(str(out))
+
         # Parse latest revision from git
         return str(sh.git('rev-parse', 'HEAD', _cwd=directory)).strip()
 
