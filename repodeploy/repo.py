@@ -132,10 +132,10 @@ class HttpRepository(Repository):
         else:
             m = hashlib.md5()
             m.update(response.headers['content-length'])
-            m.update('/')
-            m.update(response.headers['last-modified'])
+            if 'last-modified' in response.headers:
+                m.update('/')
+                m.update(response.headers['last-modified'])
             return m.hexdigest()
-
 
     def fetch(self):
 

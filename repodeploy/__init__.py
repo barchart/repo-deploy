@@ -50,7 +50,10 @@ class Deployer:
         scheduler = sched.scheduler(time.time, time.sleep)
         cron = croniter(self.config['schedule']) if 'schedule' in self.config else croniter('* * * * *')
 
-        self.check_repo()
+        try:
+            self.check_repo()
+        except Exception as e:
+            self.log.error("exception during update: %s" % e)
 
         while True:
             try:
