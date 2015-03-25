@@ -22,4 +22,4 @@ setup(name='repo-deploy',
 		('/etc/repo-deploy/pre-update.d', ['etc/pre-update.d/README']),
 		('/etc/repo-deploy/post-update.d', ['etc/post-update.d/README'])
 	],
-	install_requires=['requests>=2.2.0', 'boto>=2.20.0', 'sh>=1.0', 'croniter>=0.3.5'])
+	install_requires=['requests>=2.2.0', 'boto>=2.20.0', 'sh>=1.0', 'croniter>=0.3.5', 'dirsync>=2.1'])

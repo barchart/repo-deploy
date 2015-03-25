@@ -7,8 +7,10 @@ import sh
 import shutil
 import logging
 import subprocess
+import re
 from croniter import croniter
 from repodeploy import repo
+from dirsync import sync
 
 
 class Deployer:
@@ -43,7 +45,7 @@ class Deployer:
             self.log.error('unable to initialize remote repository: %s (%s)' % (config['remote'], e))
             sys.exit(1)
 
-        self.log.info('remote=%s' % self.repository.url)
+        self.log.info('remote=%s' % re.sub(r'//[^:]*:[^@]*@', '//*****:*****@', self.repository.url))
 
     def run(self):
 
@@ -95,36 +97,12 @@ class Deployer:
                 self.log.warn('pre-update hooks failed, update blocked')
                 return False
 
-            save = None
-
-            # Repository is link-safe, target directory does not change location
-            if self.repository.link:
-                # Repository probably changed, full reset
-                if not os.path.islink(self.currentdir):
-                    self.log.debug('removing %s, not a symlink' % self.currentdir)
-                    shutil.rmtree(self.currentdir)
-                else:
-                    save = os.path.realpath(self.currentdir)
-                if save == directory:
-                    self.log.debug('rollback not supported for repository type')
-                    save = None
-                else:
-                    self.log.debug('linking %s to %s' % (directory, self.currentdir))
-                    sh.ln('-sfT', directory, self.currentdir)
-
-            # Unpacked directories may move, need to copy instead of link
-            else:
-                save = '%s/config.save' % self.workdir
-                # Repository probably changed, full reset
-                if os.path.islink(self.currentdir):
-                    self.log.debug('removing %s, is a symlink' % self.currentdir)
-                    os.unlink(self.currentdir)
-                elif os.path.exists(self.currentdir):
-                    self.log.debug('saving rollback to %s' % save)
-                    self.move_contents(self.currentdir, save)
-                self.log.debug('moving %s to %s' % (directory, self.currentdir))
-                self.move_contents(directory, self.currentdir)
-                shutil.rmtree(directory)
+            save = '%s/repository.save' % self.workdir
+            if os.path.exists(self.currentdir):
+                self.log.debug('saving rollback to %s' % save)
+                self.sync_dirs(self.currentdir, save)
+            self.log.debug('syncing %s to %s' % (directory, self.currentdir))
+            self.sync_dirs(directory, self.currentdir)
 
             self.log.debug('activated repository version: %s' % version)
 
@@ -132,15 +110,7 @@ class Deployer:
             if not self.run_hooks(self.config['post_hooks'], current=self.currentdir, previous=save):
                 if save and os.path.exists(save):
                     self.log.warn('post-update hooks failed, rollback to previous version')
-                    if self.repository.link:
-                        target = os.path.realpath(self.currentdir)
-                        sh.ln('-sf', save, self.currentdir)
-                        # Should always be true at this point
-                        if target != save:
-                            shutil.rmtree(target)
-                    else:
-                        self.move_contents(save, self.currentdir)
-                        shutil.rmtree(save)
+                    self.sync_dirs(save, self.currentdir)
                     # Re-run post-update hooks after rollback
                     if not self.run_hooks(self.config['post_hooks'], current=self.currentdir):
                         self.log.error('post-update hooks failed after rollback, application may be unstable')
@@ -148,9 +118,6 @@ class Deployer:
                     self.log.error('post-update hooks failed, application may be unstable')
                 return False
             else:
-                if save is not None and os.path.exists(save):
-                    self.log.debug('removing rollback version')
-                    shutil.rmtree(save)
                 self.version = version
                 with open(self.versionfile, 'w') as f:
                     f.write(self.version)
@@ -161,27 +128,8 @@ class Deployer:
 
         return False
 
-    def move_contents(self, src, dest):
-        """
-        Some apps resolve the final link when monitoring directories, so we
-        can't just change symlinks, we need to move files.
-        """
-
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-        else:
-            # Remove files in dest (if exists)
-            destfiles = os.listdir(dest)
-            if len(destfiles):
-                sh.rm('-rf', *destfiles, _cwd=dest)
-
-        # Move src files to dest
-        srcfiles = os.listdir(src)
-        if len(srcfiles):
-            srcfiles.append(dest)
-            sh.mv(*srcfiles, _cwd=src)
-
-        return True
+    def sync_dirs(self, src, dest):
+        sync(src, dest, 'sync', exclude=['^\.git$', '^\.git/.*'], logger=logging.getLogger('%s.dirsync' % __name__), create=True, purge=True)
 
     def run_hooks(self, hook_dir, current=None, previous=None):
         if os.path.exists(hook_dir):

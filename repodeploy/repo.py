@@ -39,7 +39,6 @@ class Repository(object):
         self.work_dir = work_dir
         self.config = cfg
         self.log = logging.getLogger(__name__)
-        self.link = False
 
     def current(self, path):
         """
@@ -163,9 +162,6 @@ class GitRepository(Repository):
     def __init__(self, url, work_dir, cfg):
         super(GitRepository, self).__init__(url, work_dir, cfg)
 
-        # Should use symlinks instead of moving since directory location isn't change
-        self.link = True
-
         if url.startswith('git+'):
             url = url[4:]
 
@@ -184,7 +180,6 @@ class GitRepository(Repository):
             self.prefix = prefix[:pos]
             self.branch = prefix[pos:]
 
-        self.staging = self.workdir('git-work')
         self.local = self.workdir('git')
 
     def pull(self, directory):
@@ -224,11 +219,7 @@ class GitRepository(Repository):
         return str(sh.git('rev-parse', 'HEAD', _cwd=directory)).strip()
 
     def current(self):
-        version = self.pull(self.staging)
-        path = '%s%s' % (self.staging, self.prefix)
-        if os.path.exists(path):
-            return version
-        return None
+        return self.fetch()[0]
 
     def fetch(self):
         version = self.pull(self.local)
