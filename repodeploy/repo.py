@@ -192,7 +192,7 @@ class GitRepository(Repository):
         # Check for repository location change
         if os.path.exists('%s/%s' % (directory, '.git')):
             # Oh this will probably explode horribly at some point
-            remote = str(sh.git('remote', '-v')).split('\n')[0].split('\t')[1].split(' ')[0]
+            remote = str(sh.git('remote', '-v', _cwd=directory)).split('\n')[0].split('\t')[1].split(' ')[0]
             if remote != self.remote:
                 # Location changed, wipe out and start again
                 shutil.rmtree(directory)
