@@ -8,6 +8,7 @@ import shutil
 import logging
 import subprocess
 import re
+import signal
 from croniter import croniter
 from repodeploy import repo
 from dirsync import sync
@@ -49,6 +50,8 @@ class Deployer:
 
     def run(self):
 
+        signal.signal(signal.SIGTERM, self.handle_signal)
+
         scheduler = sched.scheduler(time.time, time.sleep)
         cron = croniter(self.config['schedule']) if 'schedule' in self.config else croniter('* * * * *')
 
@@ -66,6 +69,10 @@ class Deployer:
             except Exception as e:
                 self.log.error("exception during update: %s" % e)
     
+    def handle_signal(self, signo, stack):
+        self.log.info('Received signal %s, shutting down' % signo)
+        sys.exit(1)
+
     def check_repo(self):
 
         self.log.debug('checking for repository updates')
